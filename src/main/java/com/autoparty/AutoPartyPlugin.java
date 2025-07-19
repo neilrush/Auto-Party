@@ -156,8 +156,16 @@ public class AutoPartyPlugin extends Plugin
 	 */
 	private void sendPartyJoinedMessage()
 	{
-		// get the color for ChatMessageType.GAMEMESSAGE with ChatColorType.HIGHLIGHT
-		String message = new ChatMessageBuilder().append(ChatColorType.HIGHLIGHT).append("Auto Party: Last party rejoined.").build();
+		String message;
+		if (partyConfig.showPassphrase())
+		{
+			message = new ChatMessageBuilder().append(ChatColorType.HIGHLIGHT).append("Auto Party: Last party rejoined.")
+				.append("\n").append(ChatColorType.HIGHLIGHT).append("Passphrase: ").append(getLastPartyID()).build();
+		}
+		else
+		{
+			message = new ChatMessageBuilder().append(ChatColorType.HIGHLIGHT).append("Auto Party: Last party rejoined.").build();
+		}
 
 		// send a message with the chat message manager that the user has rejoined the last party
 		chatMessageManager.queue(QueuedMessage.builder().type(ChatMessageType.CONSOLE).runeLiteFormattedMessage(message).build());
