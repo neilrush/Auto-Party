@@ -49,7 +49,10 @@ import net.runelite.client.plugins.PluginManager;
 import net.runelite.client.plugins.party.PartyPlugin;
 
 @Slf4j
-@PluginDescriptor(name = "Auto Party", description = "Automatically rejoins the last party upon login.", tags = {"party", "automatic", "rejoin", "group"})
+@PluginDescriptor(
+	name = "Auto Party",
+	description = "Automatically rejoins the last party upon login.",
+	tags = {"party", "automatic", "rejoin", "group"})
 @PluginDependency(PartyPlugin.class)
 public class AutoPartyPlugin extends Plugin
 {
