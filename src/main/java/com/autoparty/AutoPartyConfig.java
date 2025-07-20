@@ -30,7 +30,7 @@ import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 
-@ConfigGroup("autoparty")
+@ConfigGroup("autopartyplugin")
 public interface AutoPartyConfig extends Config
 {
     @ConfigItem(

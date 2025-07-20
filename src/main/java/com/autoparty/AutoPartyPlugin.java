@@ -40,8 +40,8 @@ import net.runelite.client.chat.QueuedMessage;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.party.PartyService;
+import javax.swing.SwingUtilities;
 import net.runelite.client.events.PartyChanged;
-import net.runelite.client.events.PluginChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDependency;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -73,13 +73,20 @@ public class AutoPartyPlugin extends Plugin
 
 	private Boolean loggedInOnce = false;
 
-	/**
-	 * Check if the party plugin is enabled when Auto Party starts. If the Party plugin is not
-	 * enabled, Auto Party will disable itself and log a warning.
-	 */
 	@Override
 	protected void startUp()
 	{
+		log.debug("Auto Party started!");
+	}
+
+	/**
+	 * Checks if the Party plugin is enabled.
+	 *
+	 * @return true if the Party plugin is enabled, false otherwise.
+	 */
+	private boolean CheckForPartyPlugin()
+	{
+		boolean enabled = false;
 		// look for the party plugin
 		for (Plugin plugin : pluginManager.getPlugins())
 		{
@@ -88,17 +95,12 @@ public class AutoPartyPlugin extends Plugin
 				// Once we find it, check if it's currently enabled by the user
 				if (pluginManager.isPluginEnabled(plugin))
 				{
-					log.debug("Party plugin is enabled. Auto Party started!");
-				}
-				else
-				{
-					log.debug(
-						"Party plugin is required for Auto Party to function. Disabling Auto Party.");
-					pluginManager.setPluginEnabled(this, false);
+					enabled = true;
 				}
 				break; // Exit the loop once found
 			}
 		}
+		return enabled;
 	}
 
 	/**
@@ -111,25 +113,6 @@ public class AutoPartyPlugin extends Plugin
 		// clear the left last party flag as we will now possibly lose track
 		partyConfig.setJoinedParty(false);
 		log.debug("Auto Party stopped!");
-	}
-
-	/**
-	 * make sure the party plugin is enabled on pluginchange and if it is not disable this plugin
-	 */
-	@Subscribe
-	public void onPluginChanged(PluginChanged pluginChanged)
-	{
-		// get the plugin that was changed and check if it is the Party plugin
-		Plugin plugin = pluginChanged.getPlugin();
-		if (plugin != null && plugin instanceof PartyPlugin)
-		{
-			if (!pluginManager.isPluginEnabled(plugin))
-			{
-				log.debug(
-					"Party plugin is required for Auto Party to function. Disabling Auto Party.");
-				pluginManager.setPluginEnabled(this, false);
-			}
-		}
 	}
 
 	/**
@@ -146,12 +129,28 @@ public class AutoPartyPlugin extends Plugin
 		{
 			if (!partyService.isInParty() && loggedInOnce == false && partyConfig.joinedParty())
 			{
-				partyService.changeParty(getLastPartyID());
-				sendPartyJoinedMessage();
-				loggedInOnce = true; // set flag so this only happens on the first login after
-									// client startup
-				log.info("Joined Last used party after login");
+				if (!CheckForPartyPlugin())
+				{
+					log.info("Party plugin is not enabled, cannot rejoin party.");
+					return;
+				}
+				else if (getLastPartyID() != null)
+				{
+					SwingUtilities.invokeLater(
+						() -> partyService.changeParty(getLastPartyID())
+					);
+					log.debug("Attempting to rejoin last used party: {}", getLastPartyID());
+					sendPartyJoinedMessage();
+					loggedInOnce = true; // set flag so this only happens on the first login
+					return;
+				}
+				else
+				{
+					// No last party ID found, reset the joinedParty flag
+					partyConfig.setJoinedParty(false);
+				}
 			}
+
 		}
 	}
 
@@ -193,11 +192,7 @@ public class AutoPartyPlugin extends Plugin
 		{
 			message = new ChatMessageBuilder().append(ChatColorType.HIGHLIGHT).append("Auto Party: Last party rejoined.").build();
 		}
-
-		// send a message with the chat message manager that the user has rejoined the last party
 		chatMessageManager.queue(QueuedMessage.builder().type(ChatMessageType.CONSOLE).runeLiteFormattedMessage(message).build());
-
-
 	}
 
 	/**
